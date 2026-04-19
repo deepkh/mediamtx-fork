@@ -2,6 +2,8 @@
 
 set -euo pipefail
 
+MTXRPICAM_PATH="../mediamtx-rpicamera-fork/build/mtxrpicam"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}"
 
@@ -38,6 +40,41 @@ APT_PACKAGES=(
   git
   tar
 )
+
+build_mediamtx() {
+  local rpicam_src="${SCRIPT_DIR}/${MTXRPICAM_PATH}"
+  local rpicam_dst_dir="${SCRIPT_DIR}/internal/staticsources/rpicamera/mtxrpicam_64"
+  local rpicam_dst="${rpicam_dst_dir}/mtxrpicam"
+
+  if [[ -f "${rpicam_src}" ]]; then
+    mkdir -p "${rpicam_dst_dir}"
+    install -m 0755 "${rpicam_src}" "${rpicam_dst}"
+    echo "Installed custom rpicamera binary: ${rpicam_src} -> ${rpicam_dst}"
+  else
+    if [[ -f "${rpicam_dst}" ]]; then
+      echo "Custom rpicamera binary not found at ${rpicam_src}; using existing bundled binary"
+    else
+      echo "Custom rpicamera binary not found at ${rpicam_src}; downloading bundled rpicamera binaries"
+      (
+        cd internal/staticsources/rpicamera
+        go generate .
+      )
+    fi
+  fi
+
+  echo "Running targeted code generation..."
+  (
+    cd internal/core
+    go generate .
+  )
+  (
+    cd internal/servers/hls
+    go generate .
+  )
+
+  echo "Building mediamtx..."
+  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o mediamtx .
+}
 
 need_apt_update=0
 for pkg in "${APT_PACKAGES[@]}"; do
@@ -82,12 +119,7 @@ fi
 export PATH="/usr/local/go/bin:${PATH}"
 
 echo "Using Go: $(go version)"
-echo "Running go generate..."
-go generate ./...
-
-echo "Building mediamtx..."
-CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o mediamtx .
+build_mediamtx
 
 echo "Build complete: ${SCRIPT_DIR}/mediamtx"
-echo "Note: this is the standard build. If you need a custom libcamera for some Raspberry Pi cameras,"
-echo "replace internal/staticsources/rpicamera/mtxrpicam_64 before rebuilding."
+echo "Custom rpicamera downloads were skipped; ${MTXRPICAM_PATH} remains the source of mtxrpicam when present."

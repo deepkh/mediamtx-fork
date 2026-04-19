@@ -41,6 +41,14 @@ APT_PACKAGES=(
   tar
 )
 
+get_build_commit() {
+  if command -v git >/dev/null 2>&1 && git rev-parse HEAD >/dev/null 2>&1; then
+    git rev-parse HEAD
+  else
+    echo "unknown"
+  fi
+}
+
 build_mediamtx() {
   local rpicam_src="${SCRIPT_DIR}/${MTXRPICAM_PATH}"
   local rpicam_dst_dir="${SCRIPT_DIR}/internal/staticsources/rpicamera/mtxrpicam_64"
@@ -73,7 +81,8 @@ build_mediamtx() {
   )
 
   echo "Building mediamtx..."
-  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o mediamtx .
+  CGO_ENABLED=0 GOOS=linux GOARCH=arm64 \
+    go build -ldflags "-X main.buildCommit=${BUILD_COMMIT}" -o mediamtx .
 }
 
 need_apt_update=0
@@ -118,7 +127,10 @@ fi
 
 export PATH="/usr/local/go/bin:${PATH}"
 
+BUILD_COMMIT="$(get_build_commit)"
+
 echo "Using Go: $(go version)"
+echo "Building commit: ${BUILD_COMMIT}"
 build_mediamtx
 
 echo "Build complete: ${SCRIPT_DIR}/mediamtx"

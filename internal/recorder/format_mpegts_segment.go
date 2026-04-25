@@ -2,7 +2,6 @@ package recorder
 
 import (
 	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/bluenviron/mediamtx/internal/logger"
@@ -53,15 +52,11 @@ func (s *formatMPEGTSSegment) Write(p []byte) (int, error) {
 		s.path = recordstore.Path{Start: s.startNTP}.Encode(s.pathFormat2)
 		s.log.Log(logger.Debug, "creating segment %s", s.path)
 
-		err := os.MkdirAll(filepath.Dir(s.path), 0o755)
+		path, fi, err := createSegmentFile(s.path)
 		if err != nil {
 			return 0, err
 		}
-
-		fi, err := os.Create(s.path)
-		if err != nil {
-			return 0, err
-		}
+		s.path = path
 
 		s.onSegmentCreate(s.path)
 

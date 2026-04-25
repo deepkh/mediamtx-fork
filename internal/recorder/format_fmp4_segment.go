@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"time"
 
 	amp4 "github.com/abema/go-mp4"
@@ -170,15 +169,11 @@ func (s *formatFMP4Segment) closeCurPart() error {
 		s.path = recordstore.Path{Start: s.startNTP}.Encode(s.f.ri.pathFormat2)
 		s.f.ri.Log(logger.Debug, "creating segment %s", s.path)
 
-		err := os.MkdirAll(filepath.Dir(s.path), 0o755)
+		path, fi, err := createSegmentFile(s.path)
 		if err != nil {
 			return err
 		}
-
-		fi, err := os.Create(s.path)
-		if err != nil {
-			return err
-		}
+		s.path = path
 
 		s.f.ri.onSegmentCreate(s.path)
 

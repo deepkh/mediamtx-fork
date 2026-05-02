@@ -51,13 +51,81 @@ get_build_commit() {
 
 build_mediamtx() {
   local rpicam_src="${SCRIPT_DIR}/${MTXRPICAM_PATH}"
+  local rpicam_build_dir
+  rpicam_build_dir="$(dirname "${rpicam_src}")"
+  local rpicam_prefix_dir="${rpicam_build_dir}/../prefix"
+  local rpicam_lib_src_dir="${rpicam_build_dir}/../prefix/lib/aarch64-linux-gnu"
   local rpicam_dst_dir="${SCRIPT_DIR}/internal/staticsources/rpicamera/mtxrpicam_64"
   local rpicam_dst="${rpicam_dst_dir}/mtxrpicam"
+
+  copy_and_check_md5() {
+    local src="$1"
+    local dst="$2"
+    local dst_parent
+    dst_parent="$(dirname "${dst}")"
+
+    if [[ ! -e "${src}" ]]; then
+      echo "error: required rpicamera file not found: ${src}" >&2
+      exit 1
+    fi
+
+    mkdir -p "${dst_parent}"
+    rm -f "${dst}"
+    cp -L -p "${src}" "${dst}"
+
+    local src_md5
+    local dst_md5
+    src_md5="$(md5sum "${src}" | awk '{print $1}')"
+    dst_md5="$(md5sum "${dst}" | awk '{print $1}')"
+
+    echo "Copied rpicamera runtime file: ${src} -> ${dst}"
+    if [[ -L "${src}" ]]; then
+      echo "  source link: ${src} -> $(readlink "${src}")"
+    fi
+    echo "  source md5: ${src_md5}"
+    echo "  dest md5:   ${dst_md5}"
+
+    if [[ "${src_md5}" != "${dst_md5}" ]]; then
+      echo "error: md5 mismatch after copy: ${src} -> ${dst}" >&2
+      echo "source md5: ${src_md5}" >&2
+      echo "dest md5:   ${dst_md5}" >&2
+      exit 1
+    fi
+  }
+
+  copy_rpicam_runtime_files() {
+    local runtime_files=(
+      "libcamera/ipa_rpi_pisp.so"
+      "libcamera/ipa_rpi_pisp.so.sign"
+      "libcamera/ipa_rpi_vc4.so"
+      "libcamera/ipa_rpi_vc4.so.sign"
+      "libcamera-base.so.9.9.9"
+      "libcamera-base.so.9.9"
+      "libcamera-base.so"
+      "libcamera.so.9.9.9"
+      "libcamera.so.9.9"
+      "libcamera.so"
+      "libexec/libcamera/raspberrypi_ipa_proxy"
+    )
+
+    for runtime_file in "${runtime_files[@]}"; do
+      local runtime_src="${rpicam_lib_src_dir}/${runtime_file}"
+      if [[ "${runtime_file}" == libexec/* ]]; then
+        runtime_src="${rpicam_prefix_dir}/${runtime_file}"
+      fi
+
+      copy_and_check_md5 \
+        "${runtime_src}" \
+        "${rpicam_dst_dir}/${runtime_file}"
+    done
+  }
 
   if [[ -f "${rpicam_src}" ]]; then
     mkdir -p "${rpicam_dst_dir}"
     install -m 0755 "${rpicam_src}" "${rpicam_dst}"
     echo "Installed custom rpicamera binary: ${rpicam_src} -> ${rpicam_dst}"
+    copy_rpicam_runtime_files
+    echo "Installed custom rpicamera runtime files from ${rpicam_lib_src_dir}"
   else
     if [[ -f "${rpicam_dst}" ]]; then
       echo "Custom rpicamera binary not found at ${rpicam_src}; using existing bundled binary"

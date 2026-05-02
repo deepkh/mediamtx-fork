@@ -170,6 +170,12 @@ func dumpComponent() error {
 		return err
 	}
 
+	err = os.Chmod(filepath.Join(dumpPath, "libexec", "libcamera", "raspberrypi_ipa_proxy"), 0o755)
+	if err != nil && !os.IsNotExist(err) {
+		os.RemoveAll(dumpPath)
+		return err
+	}
+
 	dumpCount++
 
 	return nil
@@ -223,6 +229,9 @@ func (c *camera) initialize() error {
 		"PIPE_CONF_FD=" + strconv.FormatInt(int64(c.pipeOut.readFD), 10),
 		"PIPE_VIDEO_FD=" + strconv.FormatInt(int64(c.pipeIn.writeFD), 10),
 		"LD_LIBRARY_PATH=" + dumpPath,
+		"LIBCAMERA_IPA_MODULE_PATH=" + filepath.Join(dumpPath, "libcamera"),
+		"LIBCAMERA_IPA_PROXY_PATH=" + filepath.Join(dumpPath, "libexec", "libcamera"),
+		"LIBCAMERA_IPA_CONFIG_PATH=" + filepath.Join(dumpPath, "ipa_conf"),
 	}
 
 	c.cmd = exec.Command(filepath.Join(dumpPath, executableName))

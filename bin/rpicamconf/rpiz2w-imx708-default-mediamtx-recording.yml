@@ -613,7 +613,7 @@ pathDefaults:
   #rpiCameraHeight: 2592
   #rpiCameraHeight: 864
   # Flip horizontally.
-  rpiCameraHFlip: true
+  rpiCameraHFlip: false
   # Flip vertically.
   rpiCameraVFlip: false
   # Brightness [-1, 1].

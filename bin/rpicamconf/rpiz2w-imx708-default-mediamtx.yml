@@ -613,7 +613,7 @@ pathDefaults:
   #rpiCameraHeight: 2592
   #rpiCameraHeight: 864
   # Flip horizontally.
-  rpiCameraHFlip: true
+  rpiCameraHFlip: false
   # Flip vertically.
   rpiCameraVFlip: false
   # Brightness [-1, 1].
@@ -689,7 +689,8 @@ pathDefaults:
   rpiCameraIDRPeriod: 10
   # Bitrate (when codec is hardwareH264 or softwareH264).
   #rpiCameraBitrate: 10000000
-  rpiCameraBitrate: 2000000
+  #rpiCameraBitrate: 2000000
+  rpiCameraBitrate: 10000000
   # Hardware H264 profile (baseline, main or high) (when codec is hardwareH264).
   rpiCameraHardwareH264Profile: main
   # Hardware H264 level (4.0, 4.1 or 4.2) (when codec is hardwareH264).
@@ -810,12 +811,12 @@ paths:
   cam:
     source: rpiCamera
 
-  cam_with_audio:
-    runOnInit: >
-      gst-launch-1.0
-      rtspclientsink name=s location=rtsp://localhost:$RTSP_PORT/cam_with_audio
-      rtspsrc location=rtsp://127.0.0.1:$RTSP_PORT/cam latency=0 ! rtph264depay ! s.
-      alsasrc device=default:CARD=sndrpigooglevoi ! audioresample ! audio/x-raw,rate=16000 ! audioconvert ! opusenc bitrate=16000 ! s.
+  #cam_with_audio:
+  #  runOnInit: >
+  #    gst-launch-1.0
+  #    rtspclientsink name=s location=rtsp://localhost:$RTSP_PORT/cam_with_audio
+  #    rtspsrc location=rtsp://127.0.0.1:$RTSP_PORT/cam latency=0 ! rtph264depay ! s.
+  #    alsasrc device=default:CARD=sndrpigooglevoi ! audioresample ! audio/x-raw,rate=16000 ! audioconvert ! opusenc bitrate=16000 ! s.
     runOnInitRestart: yes
 
   # Settings under path "all_others" are applied to all paths that
